@@ -1,0 +1,3 @@
+[submodule "baselines/FADA-Pytorch"]
+	path = baselines/FADA-Pytorch
+	url = https://github.com/HX-idiot/FADA-Pytorch.git
