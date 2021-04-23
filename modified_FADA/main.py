@@ -131,8 +131,8 @@ for epoch in range(opt['n_epoches_2']):
 #----------------------------------------------------------------------
 
 #-------------------training for step 3-------------------
-optimizer_g_h=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters()),lr=0.001)
-optimizer_d_a=torch.optim.Adam(list(discriminator.parameters())+list(attention.parameters()),lr=0.001)
+optimizer_g_h_a=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters()+list(attention.parameters())),lr=0.001)
+optimizer_d=torch.optim.Adam(discriminator.parameters(),lr=0.001)
 
 
 test_dataloader=dataloader.svhn_dataloader(train=False,batch_size=opt['batch_size'])
@@ -188,7 +188,7 @@ for epoch in range(opt['n_epoches_3']):
             ground_truths_y2 = ground_truths_y2.to(device)
             dcd_labels=dcd_labels.to(device)
 
-            optimizer_g_h.zero_grad()
+            optimizer_g_h_a.zero_grad()
 
             encoder_X1=encoder(X1)
             encoder_X2=encoder(X2)
@@ -212,7 +212,7 @@ for epoch in range(opt['n_epoches_3']):
             loss_sum = loss_X1 + loss_X2 + 0.2 * loss_dcd
 
             loss_sum.backward()
-            optimizer_g_h.step()
+            optimizer_g_h_a.step()
 
             X1 = []
             X2 = []
@@ -242,10 +242,10 @@ for epoch in range(opt['n_epoches_3']):
             X2 = X2.to(device)
             ground_truths = ground_truths.to(device)
 
-            optimizer_d_a.zero_grad()
+            optimizer_d.zero_grad()
 
-            encoder_X1 = encoder(X1).detach()
-            encoder_X2 = encoder(X2).detach()
+            encoder_X1 = encoder(X1)
+            encoder_X2 = encoder(X2)
 
             attention_score1 = attention(encoder_X1)
             attention_score2 = attention(encoder_X2)
@@ -256,12 +256,12 @@ for epoch in range(opt['n_epoches_3']):
             X_cat = torch.cat([attention_X1, attention_X2], 1)
             y_pred_X1 = classifier(attention_X1)
             y_pred_X2 = classifier(attention_X2)
-            y_pred_dcd = discriminator(X_cat)
+            y_pred_dcd = discriminator(X_cat.detach())
 
             # y_pred = discriminator(X_cat.detach())
             loss = loss_fn(y_pred_dcd, ground_truths)
             loss.backward()
-            optimizer_d_a.step()
+            optimizer_d.step()
             # loss_mean.append(loss.item())
             X1 = []
             X2 = []
