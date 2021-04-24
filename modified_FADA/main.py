@@ -33,6 +33,7 @@ attention = main_models.Attention(input_features=64)
 classifier.to(device)
 encoder.to(device)
 discriminator.to(device)
+attention.to(device)
 loss_fn=torch.nn.CrossEntropyLoss()
 
 optimizer=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters()))
@@ -131,7 +132,7 @@ for epoch in range(opt['n_epoches_2']):
 #----------------------------------------------------------------------
 
 #-------------------training for step 3-------------------
-optimizer_g_h_a=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters()+list(attention.parameters())),lr=0.001)
+optimizer_g_h_a=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters()),lr=0.001)
 optimizer_d=torch.optim.Adam(discriminator.parameters(),lr=0.001)
 
 

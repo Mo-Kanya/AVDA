@@ -26,8 +26,8 @@ class Attention(BasicModule):
 
     def forward(self, inputs):
         out = F.relu(self.fc1(inputs))
-        out = F.relu(self.fc2(inputs))
-        out = self.fc3(inputs)
+        out = F.relu(self.fc2(out))
+        out = self.fc3(out)
         return F.normalize(out)
         # return F.InstanceNorm1d(out)
 

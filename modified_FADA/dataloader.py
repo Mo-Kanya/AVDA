@@ -52,7 +52,7 @@ def sample_data():
 
 
 def create_target_samples(n=1):
-    dataset=datasets.SVHN('./data/SVHN', split='train', download=False,
+    dataset=datasets.SVHN('./data/SVHN', split='train', download=True,
                        transform=transforms.Compose([
                            transforms.Resize((28,28)),
                            transforms.Grayscale(),
