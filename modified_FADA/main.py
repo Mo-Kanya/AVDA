@@ -273,7 +273,13 @@ for epoch in range(opt['n_epoches_3']):
     for data, labels in test_dataloader:
         data = data.to(device)
         labels = labels.to(device)
-        y_test_pred = classifier(encoder(data))
+
+        # y_test_pred = classifier(encoder(data))
+        encoder_test=encoder(data)
+        attention_score = attention(encoder_test)
+        attention_clf = encoder_test * (1-attention_score)
+        y_test_pred = classifier(attention_clf)
+        
         acc += (torch.max(y_test_pred, 1)[1] == labels).float().mean().item()
 
     accuracy = round(acc / float(len(test_dataloader)), 3)
