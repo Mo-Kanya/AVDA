@@ -19,6 +19,7 @@ torch.manual_seed(1)
 if use_cuda:
     torch.cuda.manual_seed(1)
 
+learning_rate = [0.001, 0.0008, 0.0003]
 
 #--------------pretrain g and h for step 1---------------------------------
 train_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=True)
@@ -26,8 +27,8 @@ test_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=F
 
 classifier=main_models.Classifier()
 encoder=main_models.Encoder()
-discriminator=main_models.DCD(input_features=128)
-attention = main_models.Attention(input_features=64)
+discriminator=main_models.DCD(input_features=128, h_features=512)
+attention = main_models.Attention(input_features=64, h_features=256)
 # TODO: attention需要有初始化参数，感觉在0.5左右会好一点
 
 classifier.to(device)
@@ -36,7 +37,7 @@ discriminator.to(device)
 attention.to(device)
 loss_fn=torch.nn.CrossEntropyLoss()
 
-optimizer=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters()))
+optimizer=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters()), lr=learning_rate[0])
 
 
 for epoch in range(opt['n_epoches_1']):
@@ -73,7 +74,7 @@ X_t,Y_t=dataloader.create_target_samples(opt['n_target_samples'])
 
 #-----------------train DCD for step 2--------------------------------
 
-optimizer_D_A=torch.optim.Adam(list(discriminator.parameters())+list(attention.parameters()),lr=0.001)
+optimizer_D_A=torch.optim.Adam(list(discriminator.parameters())+list(attention.parameters()),lr=learning_rate[1])
 
 
 for epoch in range(opt['n_epoches_2']):
@@ -132,7 +133,7 @@ for epoch in range(opt['n_epoches_2']):
 #----------------------------------------------------------------------
 
 #-------------------training for step 3-------------------
-optimizer_g_h_a=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters()),lr=0.001)
+optimizer_g_h_a=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters()),lr=learning_rate[2])
 optimizer_d=torch.optim.Adam(discriminator.parameters(),lr=0.001)
 
 
@@ -210,7 +211,7 @@ for epoch in range(opt['n_epoches_3']):
             loss_X2=loss_fn(y_pred_X2,ground_truths_y2)
             loss_dcd=loss_fn(y_pred_dcd,dcd_labels)
 
-            loss_sum = loss_X1 + loss_X2 + 0.2 * loss_dcd
+            loss_sum = loss_X1 + loss_X2 + 0.25 * loss_dcd
 
             loss_sum.backward()
             optimizer_g_h_a.step()

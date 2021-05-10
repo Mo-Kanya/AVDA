@@ -7,8 +7,8 @@ class DCD(BasicModule):
         super(DCD,self).__init__()
 
         self.fc1=nn.Linear(input_features,h_features)
-        self.fc2=nn.Linear(h_features,h_features)
-        self.fc3=nn.Linear(h_features,4)
+        self.fc2=nn.Linear(h_features,128)
+        self.fc3=nn.Linear(128,4)
 
     def forward(self,inputs):
         out=F.relu(self.fc1(inputs))
