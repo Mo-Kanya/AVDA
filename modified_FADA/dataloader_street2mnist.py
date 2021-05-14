@@ -5,14 +5,11 @@ import torch
 from torchvision import datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-#return dataloader
-
-def svhn_dataloader(batch_size=256,train=True):
-# def mnist_dataloader(batch_size=256,train=True):
+#return MNIST dataloader
+def mnist_dataloader(batch_size=256,train=True):
 
     dataloader=DataLoader(
-    datasets.SVHN('./data/SVHN',train=train,download=True,
-    # datasets.MNIST('./data/mnist',train=train,download=True,
+    datasets.MNIST('./data/mnist',train=train,download=True,
                    transform=transforms.Compose([
                        transforms.ToTensor(),
                        transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
@@ -21,11 +18,9 @@ def svhn_dataloader(batch_size=256,train=True):
 
     return dataloader
 
-def mnist_dataloader(batch_size=4,train=True):
-# def svhn_dataloader(batch_size=4,train=True):
+def svhn_dataloader(batch_size=4,train=True):
     dataloader = DataLoader(
-        # datasets.SVHN('./data/SVHN', split=('train' if train else 'test'), download=True,
-        datasets.MNIST('./data/mnist', split=('train' if train else 'test'), download=True,
+        datasets.SVHN('./data/SVHN', split=('train' if train else 'test'), download=True,
                        transform=transforms.Compose([
                            transforms.Resize((28,28)),
                            transforms.Grayscale(),
@@ -38,28 +33,7 @@ def mnist_dataloader(batch_size=4,train=True):
 
 
 def sample_data():
-    # dataset=datasets.MNIST('./data/mnist',train=True,download=True,
-    dataset=datasets.SVHN('./data/SVHN',train=True,download=True,
-                   transform=transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
-                   ]))
-    n=len(dataset)
-
-    X=torch.Tensor(n,1,28,28)
-    Y=torch.LongTensor(n)
-
-    inds=torch.randperm(len(dataset))
-    for i,index in enumerate(inds):
-        x,y=dataset[index]
-        X[i]=x
-        Y[i]=y
-    return X,Y
-
-
-def create_target_samples(n=1):
-    dataset=datasets.MNIST('./data/mnist', split='train', download=True,
-    # dataset=datasets.SVHN('./data/SVHN', split='train', download=True,
+    dataset=datasets.SVHN('./data/SVHN', split='train', download=True,
                        transform=transforms.Compose([
                            transforms.Resize((28,28)),
                            transforms.Grayscale(),
@@ -67,6 +41,22 @@ def create_target_samples(n=1):
                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                        ]))
     X,Y=[],[]
+    for i in range(len(dataset)):
+        x,y=dataset[i]
+        X.append(x)
+        Y.append(y)
+
+    return torch.stack(X,dim=0),torch.from_numpy(np.array(Y))
+
+
+def create_target_samples(n=1):
+    dataset=datasets.MNIST('./data/mnist',train=True,download=True,
+                   transform=transforms.Compose([
+                       transforms.ToTensor(),
+                       transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
+                   ]))
+    X=torch.Tensor(n,1,28,28)
+    Y=torch.LongTensor(n)
     classes=10*[n]
 
     i=0
@@ -75,13 +65,12 @@ def create_target_samples(n=1):
             break
         x,y=dataset[i]
         if classes[y]>0:
-            X.append(x)
-            Y.append(y)
+            X[i]=(x)
+            Y[i]=(y)
             classes[y]-=1
         i+=1
 
-    assert (len(X)==n*10)
-    return torch.stack(X,dim=0),torch.from_numpy(np.array(Y))
+    return X,Y
 """
 G1: a pair of pic comes from same domain ,same class
 G3: a pair of pic comes from same domain, different classes
