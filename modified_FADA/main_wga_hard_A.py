@@ -15,7 +15,7 @@ opt=vars(parser.parse_args())
 
 use_cuda=True if torch.cuda.is_available() else False
 device=torch.device('cuda:0') if use_cuda else torch.device('cpu')
-torch.manual_seed(1)
+# torch.manual_seed(1)
 if use_cuda:
     torch.cuda.manual_seed(1)
 train_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=True)
@@ -23,8 +23,8 @@ test_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=F
 
 classifier=main_models.Classifier()
 encoder=main_models.Encoder()
-discriminator=main_models.DCD(input_features=128)
-attention = main_models.Attention(input_features=64)
+discriminator=main_models.DCD(input_features=128, h_features=512)
+attention = main_models.Attention(input_features=64, h_features=256)
 # TODO: attention需要有初始化参数，感觉在0.5左右会好一点
 
 classifier.to(device)
@@ -35,7 +35,7 @@ loss_fn=torch.nn.CrossEntropyLoss()
 X_s,Y_s=dataloader.sample_data()
 X_t,Y_t=dataloader.create_target_samples(opt['n_target_samples'])
 #-------------------training for step 3-------------------
-optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(discriminator.parameters()),lr=0.001)
+optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(discriminator.parameters()),lr=0.002)
 test_dataloader=dataloader.svhn_dataloader(train=False,batch_size=opt['batch_size'])
 
 
@@ -96,8 +96,8 @@ for epoch in range(opt['n_epoches_3']):
 
             # attention_score1 = attention(encoder_X1)
             # attention_score2 = attention(encoder_X2)
-            attention_score1 = torch.cat((torch.zeros(32),torch.ones(32)))
-            attention_score2 = torch.cat((torch.zeros(32),torch.ones(32)))
+            attention_score1 = torch.cat((torch.zeros(32),torch.ones(32))).to(device)
+            attention_score2 = torch.cat((torch.zeros(32),torch.ones(32))).to(device)
             attention_X1 = encoder_X1 * attention_score1
             attention_X2 = encoder_X2 * attention_score2
             X_cat = torch.cat([attention_X1, attention_X2], 1)
