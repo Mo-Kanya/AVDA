@@ -41,8 +41,9 @@ def sample_data():
                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                        ]))
     X,Y=[],[]
-    for i in range(len(dataset)):
-        x,y=dataset[i]
+    inds=torch.randperm(len(dataset))
+    for i,index in enumerate(inds):
+        x,y=dataset[index]
         X.append(x)
         Y.append(y)
 
@@ -65,8 +66,8 @@ def create_target_samples(n=1):
             break
         x,y=dataset[i]
         if classes[y]>0:
-            X[i]=(x)
-            Y[i]=(y)
+            X[i]=x
+            Y[i]=y
             classes[y]-=1
         i+=1
 
