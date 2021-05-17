@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.BasicModule import BasicModule
+from torchvision import models
+
 class DCD(BasicModule):
     def __init__(self,h_features=64,input_features=128):
         super(DCD,self).__init__()
@@ -62,7 +64,17 @@ class Encoder(BasicModule):
 
         return out
 
+class ResNet18_Encoder(BasicModule):
+    def __init__(self):
+        super(ResNet18_Encoder, self).__init__()
+        self.resnet = models.resnet18(pretrained=False)
+        self.resnet.load_state_dict(torch.load('./resnet18-5c106cde.pth'))
+        for param in self.resnet.parameters():
+            param.requires_grad = False
+        num_ftrs = self.resnet.fc.in_features
+        self.resnet.fc = nn.Linear(num_ftrs, 64)
 
-
+    def forward(self, input):
+        out = self.model(input)
 
 

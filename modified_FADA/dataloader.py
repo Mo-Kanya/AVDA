@@ -50,6 +50,25 @@ def sample_data():
         Y[i]=y
     return X,Y
 
+def sample_data_RGB():
+    dataset=datasets.MNIST('./data/mnist',train=True,download=True,
+                   transform=transforms.Compose([
+                       transforms.Resize((64,64)),
+                       transforms.ToTensor(),
+                       transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
+                   ]))
+    n=len(dataset)
+
+    X=torch.Tensor(n,3,64,64)
+    Y=torch.LongTensor(n)
+
+    inds=torch.randperm(len(dataset))
+    for i,index in enumerate(inds):
+        x,y=dataset[index]
+        X[i]=torch.cat((x, x, x), 0)
+        Y[i]=y
+    return X,Y
+
 
 def create_target_samples(n=1):
     dataset=datasets.SVHN('./data/SVHN', split='train', download=True,
@@ -75,6 +94,33 @@ def create_target_samples(n=1):
 
     assert (len(X)==n*10)
     return torch.stack(X,dim=0),torch.from_numpy(np.array(Y))
+
+
+def create_target_samples_RGB(n=1):
+    dataset=datasets.SVHN('./data/SVHN', split='train', download=True,
+                       transform=transforms.Compose([
+                           transforms.Resize((64,64)),
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                       ]))
+    X,Y=[],[]
+    classes=10*[n]
+
+    i=0
+    while True:
+        if len(X)==n*10:
+            break
+        x,y=dataset[i]
+        if classes[y]>0:
+            X.append(x)
+            Y.append(y)
+            classes[y]-=1
+        i+=1
+
+    assert (len(X)==n*10)
+    return torch.stack(X,dim=0),torch.from_numpy(np.array(Y))
+
+
 """
 G1: a pair of pic comes from same domain ,same class
 G3: a pair of pic comes from same domain, different classes
