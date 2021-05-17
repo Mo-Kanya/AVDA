@@ -1,7 +1,7 @@
 import argparse
 import torch
-import dataloader
-# import dataloader_street2mnist as dataloader
+# import dataloader
+import dataloader_street2mnist as dataloader
 from models import main_models
 import numpy as np
 
