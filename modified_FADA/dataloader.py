@@ -5,6 +5,9 @@ import torch
 from torchvision import datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+
+IMG_SIZE_RESNET = 224
+
 #return MNIST dataloader
 def mnist_dataloader(batch_size=256,train=True):
 
@@ -18,12 +21,37 @@ def mnist_dataloader(batch_size=256,train=True):
 
     return dataloader
 
+def mnist_dataloader_large(batch_size=256,train=True):
+
+    dataloader=DataLoader(
+    datasets.MNIST('./data/mnist',train=train,download=True,
+                   transform=transforms.Compose([
+                       transforms.Resize((IMG_SIZE_RESNET, IMG_SIZE_RESNET)),
+                       transforms.ToTensor(),
+                       transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
+                   ])),
+    batch_size=batch_size,shuffle=True)
+
+    return dataloader
+
 def svhn_dataloader(batch_size=4,train=True):
     dataloader = DataLoader(
         datasets.SVHN('./data/SVHN', split=('train' if train else 'test'), download=True,
                        transform=transforms.Compose([
                            transforms.Resize((28,28)),
                            transforms.Grayscale(),
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                       ])),
+        batch_size=batch_size, shuffle=False)
+
+    return dataloader
+
+def svhn_dataloader_RGB(batch_size=4,train=True):
+    dataloader = DataLoader(
+        datasets.SVHN('./data/SVHN', split=('train' if train else 'test'), download=True,
+                       transform=transforms.Compose([
+                           transforms.Resize((IMG_SIZE_RESNET,IMG_SIZE_RESNET)),
                            transforms.ToTensor(),
                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                        ])),
@@ -53,13 +81,13 @@ def sample_data():
 def sample_data_RGB():
     dataset=datasets.MNIST('./data/mnist',train=True,download=True,
                    transform=transforms.Compose([
-                       transforms.Resize((64,64)),
+                       transforms.Resize((IMG_SIZE_RESNET,IMG_SIZE_RESNET)),
                        transforms.ToTensor(),
                        transforms.Normalize((0.5,0.5,0.5),(0.5,0.5,0.5))
                    ]))
     n=len(dataset)
 
-    X=torch.Tensor(n,3,64,64)
+    X=torch.Tensor(n,3,IMG_SIZE_RESNET,IMG_SIZE_RESNET)
     Y=torch.LongTensor(n)
 
     inds=torch.randperm(len(dataset))
@@ -99,7 +127,7 @@ def create_target_samples(n=1):
 def create_target_samples_RGB(n=1):
     dataset=datasets.SVHN('./data/SVHN', split='train', download=True,
                        transform=transforms.Compose([
-                           transforms.Resize((64,64)),
+                           transforms.Resize((IMG_SIZE_RESNET,IMG_SIZE_RESNET)),
                            transforms.ToTensor(),
                            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
                        ]))

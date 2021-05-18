@@ -68,13 +68,14 @@ class ResNet18_Encoder(BasicModule):
     def __init__(self):
         super(ResNet18_Encoder, self).__init__()
         self.resnet = models.resnet18(pretrained=False)
-        self.resnet.load_state_dict(torch.load('./resnet18-5c106cde.pth'))
+        self.resnet.load_state_dict(torch.load('./models/resnet18-5c106cde.pth'))
         for param in self.resnet.parameters():
             param.requires_grad = False
         num_ftrs = self.resnet.fc.in_features
         self.resnet.fc = nn.Linear(num_ftrs, 64)
 
     def forward(self, input):
-        out = self.model(input)
-
+        # print(input.shape)
+        out = self.resnet(input)
+        return out
 

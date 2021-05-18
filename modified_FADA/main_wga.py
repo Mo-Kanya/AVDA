@@ -7,7 +7,7 @@ import numpy as np
 parser=argparse.ArgumentParser()
 parser.add_argument('--n_epoches_1',type=int,default=10)
 parser.add_argument('--n_epoches_2',type=int,default=100)
-parser.add_argument('--n_epoches_3',type=int,default=100)
+parser.add_argument('--n_epoches_3',type=int,default=200)
 parser.add_argument('--n_target_samples',type=int,default=7)
 parser.add_argument('--batch_size',type=int,default=64)
 
@@ -23,8 +23,8 @@ test_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=F
 
 classifier=main_models.Classifier()
 encoder=main_models.Encoder()
-discriminator=main_models.DCD(input_features=128)
-attention = main_models.Attention(input_features=64)
+discriminator=main_models.DCD(input_features=128, h_features=512)
+attention = main_models.Attention(input_features=64, h_features=512)
 # TODO: attention需要有初始化参数，感觉在0.5左右会好一点
 
 classifier.to(device)
@@ -35,7 +35,7 @@ loss_fn=torch.nn.CrossEntropyLoss()
 X_s,Y_s=dataloader.sample_data()
 X_t,Y_t=dataloader.create_target_samples(opt['n_target_samples'])
 #-------------------training for step 3-------------------
-optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()),lr=0.001)
+optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()),lr=0.0025)
 test_dataloader=dataloader.svhn_dataloader(train=False,batch_size=opt['batch_size'])
 
 
