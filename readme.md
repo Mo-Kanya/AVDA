@@ -1,6 +1,7 @@
 ## What is Inside:  
 **AVDA_toy**:  
 + preliminary experiments testing the idea of masking features.
++ put /data with MNIST and SVHN data under it saves downloading time
 
 **baselines**: 
 + baseline models;  

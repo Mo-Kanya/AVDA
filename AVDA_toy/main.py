@@ -3,15 +3,20 @@ import torch
 import dataloader
 from models import main_models
 import numpy as np
+from matplotlib import pyplot as plt
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--n_epoches_1',type=int,default=100)
+parser.add_argument('--lambda1',type=float,default=2.5)
+parser.add_argument('--lambda2',type=float,default=1.5)
+parser.add_argument('--n_epoches_1',type=int,default=200)
 parser.add_argument('--n_epoches_2',type=int,default=100)
-parser.add_argument('--n_epoches_3',type=int,default=100)
+parser.add_argument('--n_epoches_3',type=int,default=200)
 parser.add_argument('--n_target_samples',type=int,default=7)
 parser.add_argument('--batch_size',type=int,default=64)
 
 opt=vars(parser.parse_args())
+lambda1 = opt['lambda1']
+lambda2 = opt['lambda2']
 
 use_cuda=True if torch.cuda.is_available() else False
 device=torch.device('cuda:0') if use_cuda else torch.device('cpu')
@@ -19,7 +24,7 @@ torch.manual_seed(1)
 if use_cuda:
     torch.cuda.manual_seed(1)
 
-
+print("\n---------------------------------------\n")
 """Pre-train"""
 X_s,Y_s=dataloader.sample_data()
 X_t,Y_t=dataloader.create_target_samples(opt['n_target_samples'])
@@ -29,14 +34,13 @@ test_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=F
 
 classifier=main_models.Classifier()
 encoder=main_models.Encoder()
-discriminator=main_models.DCD(input_features=128)
+discriminator=main_models.DCD()
 classifier.to(device)
 encoder.to(device)
 discriminator.to(device)
 
 loss_fn=torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(discriminator.parameters()), lr=0.001)
-
+optimizer = torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(discriminator.parameters()), lr=0.002)
 for epoch in range(opt['n_epoches_1']):
     # data
     groups,aa = dataloader.sample_groups(X_s,Y_s,X_t,Y_t,seed=epoch)
@@ -75,15 +79,15 @@ for epoch in range(opt['n_epoches_1']):
             y_pred2 = classifier(encoder(data))
             loss2 = loss_fn(y_pred2, labels)
 
-            loss = 2*loss1 + loss2
+            loss = lambda1*loss1 + loss2
             loss.backward()
             optimizer.step()
             loss_mean.append(loss1.item())
             X1 = []
             X2 = []
             ground_truths = []
-    print("step2----Epoch %d/%d loss:%.3f"%(epoch+1,opt['n_epoches_2'],np.mean(loss_mean)))
-
+    if epoch%10==0:
+        print("step2----Epoch %d/%d loss:%.3f"%(epoch+1,opt['n_epoches_2'],np.mean(loss_mean)))
 
 acc=0
 for data,labels in test_dataloader:
@@ -102,7 +106,7 @@ X_t,Y_t=dataloader.create_target_samples(opt['n_target_samples'])
 
 attention = main_models.Attention()
 attention.to(device)
-torch.nn.init.constant_(attention.fc1.weight, 0)
+# torch.nn.init.constant_(attention.fc1.weight, 0)
 
 optimizer_h = torch.optim.Adam(classifier.parameters(), lr=0.002)
 optimizer_a = torch.optim.Adam(attention.parameters(), lr=0.001)
@@ -124,17 +128,17 @@ for epoch in range(opt['n_epoches_3']):
     mini_batch_size_dcd= 40 # data contains G1,G2,G3,G4 so use 40 as mini_batch
 
     # testing
-    acc = 0
-    for data, labels in test_dataloader:
-        data = data.to(device)
-        labels = labels.to(device)
-        with torch.no_grad():
-            a_score = attention(torch.FloatTensor([1]).to(device))
-            y_test_pred = classifier(encoder(data) * (1-a_score))
-        acc += (torch.max(y_test_pred, 1)[1] == labels).float().mean().item()
-    accuracy = round(acc / float(len(test_dataloader)), 3)
-    print("Training A----Epoch %d/%d  accuracy: %.3f " %
-          (epoch + 1, opt['n_epoches_3'], accuracy))
+    if epoch%2 == 0:
+        acc = 0
+        for data, labels in test_dataloader:
+            data = data.to(device)
+            labels = labels.to(device)
+            with torch.no_grad():
+                a_score = attention(torch.FloatTensor([1]).to(device))
+                y_test_pred = classifier(encoder(data) * (1-a_score))
+            acc += (torch.max(y_test_pred, 1)[1] == labels).float().mean().item()
+        accuracy = round(acc / float(len(test_dataloader)), 3)
+        print("Training A----Epoch %d/%d  accuracy: %.3f " %(epoch + 1, opt['n_epoches_3'], accuracy))
 
     # update A
     X1 = []
@@ -176,8 +180,6 @@ for epoch in range(opt['n_epoches_3']):
 
             attention_score1 = attention(torch.FloatTensor([1]).to(device))
             attention_score2 = attention(torch.FloatTensor([1]).to(device))
-            
-           #  print(attention_score1)
 
             attention_X1 = encoder_X1 * attention_score1
             attention_X2 = encoder_X2 * attention_score2
@@ -192,7 +194,7 @@ for epoch in range(opt['n_epoches_3']):
             loss_X2=loss_fn(y_pred_X2,ground_truths_y2)
             loss_dcd=loss_fn(y_pred_dcd,dcd_labels)
 
-            loss_sum = loss_X1 + loss_X2 + 0.5 * loss_dcd
+            loss_sum = loss_X1 + loss_X2 + loss_dcd*lambda2
 
             loss_sum.backward()
             # optimizer_h.step()
