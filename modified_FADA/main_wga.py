@@ -26,8 +26,8 @@ test_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=F
 
 classifier=main_models.Classifier()
 encoder=main_models.Encoder()
-discriminator=main_models.DCD(input_features=128)
-attention = main_models.Attention(input_features=64)
+discriminator=main_models.DCD(input_features=128, h_features=512)
+attention = main_models.Attention(input_features=64, h_features=512)
 # TODO: attention需要有初始化参数，感觉在0.5左右会好一点
 
 classifier.to(device)

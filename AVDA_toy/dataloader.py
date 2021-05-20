@@ -147,9 +147,6 @@ def create_groups(X_s,Y_s,X_t,Y_t,seed=1):
 
 
 def sample_groups(X_s,Y_s,X_t,Y_t,seed=1):
-
-
-    print("Sampling groups")
     return create_groups(X_s,Y_s,X_t,Y_t,seed=seed)
 
 
