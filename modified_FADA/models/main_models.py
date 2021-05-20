@@ -17,7 +17,7 @@ class DCD(BasicModule):
 
 
 class Attention(BasicModule):
-    def __init__(self, h_features=32, input_features=64):
+    def __init__(self, h_features=128, input_features=64):
         super(Attention, self).__init__()
 
         self.fc1 = nn.Linear(input_features, h_features)
@@ -38,6 +38,30 @@ class Classifier(BasicModule):
 
     def forward(self,input):
         return F.softmax(self.fc(input),dim=1)
+
+# class Encoder(BasicModule):
+#     def __init__(self):
+#         super(Encoder,self).__init__()
+
+#         self.conv1=nn.Conv2d(1,6,5)
+#         self.conv2=nn.Conv2d(6,16,5)
+#         self.fc1=nn.Linear(256,120)
+#         self.fc2=nn.Linear(120,84)
+#         self.fc3=nn.Linear(84,64)
+
+#     def forward(self,input):
+#         out=F.relu(self.conv1(input))
+#         out=F.max_pool2d(out,2)
+#         out=F.relu(self.conv2(out))
+#         out=F.max_pool2d(out,2)
+#         out=out.view(out.size(0),-1)
+
+#         out=F.relu(self.fc1(out))
+#         out=F.relu(self.fc2(out))
+#         out=self.fc3(out)
+
+#         return out
+
 
 class Encoder(BasicModule):
     def __init__(self):
@@ -61,8 +85,6 @@ class Encoder(BasicModule):
         out=self.fc3(out)
 
         return out
-
-
 
 
 
