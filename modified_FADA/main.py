@@ -20,7 +20,7 @@ torch.manual_seed(1)
 if use_cuda:
     torch.cuda.manual_seed(1)
 
-learning_rate = [0.001, 0.0008, 0.0003]
+learning_rate = [0.001, 0.001, 0.0005]
 
 #--------------pretrain g and h for step 1---------------------------------
 train_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=True)

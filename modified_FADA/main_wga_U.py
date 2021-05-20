@@ -1,7 +1,8 @@
 import argparse
 import torch
-import dataloader_street2mnist as dataloader
-from models import main_models
+import UMloader as dataloader
+import UMmodule
+from torch.utils.data import DataLoader
 import numpy as np
 max_acu = 0.0
 parser=argparse.ArgumentParser()
@@ -21,13 +22,17 @@ device=torch.device('cuda:0') if use_cuda else torch.device('cpu')
 torch.manual_seed(opt['seed'])
 if use_cuda:
     torch.cuda.manual_seed(opt['seed'])
-train_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=True)
-test_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=False)
+domain_adaptation_task = 'MNIST_to_USPS' #'USPS_to_MNIST' 
+# 'MNIST_to_USPS'
+repetition = 0
+sample_per_class = 7
+train_set=dataloader.TrainSet(domain_adaptation_task, repetition,sample_per_class)
+test_set=dataloader.TestSet(domain_adaptation_task, repetition,sample_per_class)
 
-classifier=main_models.Classifier()
-encoder=main_models.Encoder()
-discriminator=main_models.DCD(input_features=128)
-attention = main_models.Attention(input_features=64)
+classifier=UMmodule.Classifier()
+encoder=UMmodule.Encoder()
+discriminator=UMmodule.DCD(input_features=128)
+attention = UMmodule.Attention(input_features=64)
 # TODO: attention需要有初始化参数，感觉在0.5左右会好一点
 
 classifier.to(device)
@@ -36,10 +41,11 @@ discriminator.to(device)
 attention.to(device)
 loss_fn=torch.nn.CrossEntropyLoss()
 X_s,Y_s=dataloader.sample_data()
-X_t,Y_t=dataloader.create_target_samples(opt['n_target_samples'])
+X_t,Y_t=torch.from_numpy(train_set.x_target).unsqueeze(1), torch.from_numpy(train_set.y_target).long()
+
 #-------------------training for step 3-------------------
 optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()),lr=opt['lr'])
-test_dataloader=dataloader.svhn_dataloader(train=False,batch_size=opt['batch_size'])
+test_dataloader=DataLoader(test_set,batch_size=opt['batch_size'],shuffle=True,drop_last=True)
 
 
 for epoch in range(opt['n_epoches_3']):
@@ -143,3 +149,4 @@ for epoch in range(opt['n_epoches_3']):
     if (accuracy>max_acu):
         max_acu = accuracy
 print("Max Accuracy: %f" % max_acu)
+print(list(attention.parameters()))
