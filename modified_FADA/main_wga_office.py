@@ -12,10 +12,10 @@ parser.add_argument('--n_epoches_2',type=int,default=100)
 parser.add_argument('--n_epoches_3',type=int,default=150)
 parser.add_argument('--batch_size1',type=int,default=20)
 parser.add_argument('--batch_size2',type=int,default=40)
-parser.add_argument('--lr',type=float,default=0.002)
+parser.add_argument('--lr',type=float,default=0.0008)
 parser.add_argument('--batch_size',type=int,default=16)
 parser.add_argument('--n_target_samples',type=int,default=7)
-parser.add_argument('--seed',type=int,default=17)
+parser.add_argument('--seed',type=int,default=1)
 opt=vars(parser.parse_args())
 
 use_cuda=True if torch.cuda.is_available() else False

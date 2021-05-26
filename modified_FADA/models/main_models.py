@@ -10,12 +10,12 @@ class Flatten(nn.Module):
         return x.view(x.shape[0], -1)
 
 class DCD(BasicModule):
-    def __init__(self,h_features=512,input_features=2048*2):
+    def __init__(self,h_features=1024,input_features=2048*2):
         super(DCD,self).__init__()
 
         self.fc1=nn.Linear(input_features,h_features)
-        self.fc2=nn.Linear(h_features,128)
-        self.fc3=nn.Linear(128,4)
+        self.fc2=nn.Linear(h_features,512)
+        self.fc3=nn.Linear(512,4)
 
     def forward(self,inputs):
         out=F.relu(self.fc1(inputs))
@@ -24,7 +24,7 @@ class DCD(BasicModule):
 
 
 class Attention(BasicModule):
-    def __init__(self, h_features=512, input_features=2048):
+    def __init__(self, h_features=1024, input_features=2048):
         super(Attention, self).__init__()
 
         self.fc1 = nn.Linear(input_features, h_features)
@@ -53,7 +53,9 @@ class Encoder(nn.Module):
 
     def __init__(self):
         super(Encoder, self).__init__()
-        resnet = torchvision.models.resnet50(pretrained=True) 
+        resnet = models.resnet50(pretrained=False)
+        resnet.load_state_dict(torch.load('./models/resnet50-19c8e357.pth'))
+        # resnet = torchvision.models.resnet50(pretrained=True)
         modules = list(resnet.children())[:-1]
         self.resnet = nn.Sequential(*modules)
 
