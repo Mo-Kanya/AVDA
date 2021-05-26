@@ -79,3 +79,22 @@ class ResNet18_Encoder(BasicModule):
         out = self.resnet(input)
         return out
 
+class ResNet18_Encoder_Gray(BasicModule):
+    def __init__(self):
+        super(ResNet18_Encoder_Gray, self).__init__()
+        self.resnet = models.resnet18(pretrained=False)
+        self.resnet.load_state_dict(torch.load('./models/resnet18-5c106cde.pth'))
+        for param in self.resnet.parameters():
+            param.requires_grad = False
+        num_ftrs = self.resnet.fc.in_features
+        self.resnet.fc = nn.Linear(num_ftrs, 64)
+        self.resnet.conv1 = nn.Conv2d(1, self.resnet.conv1.out_channels,
+                                         self.resnet.conv1.kernel_size,
+                                         self.resnet.conv1.stride,
+                                         self.resnet.conv1.padding,
+                                         bias=False)
+
+    def forward(self, input):
+        # print(input.shape)
+        out = self.resnet(input)
+        return out

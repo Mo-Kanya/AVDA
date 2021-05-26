@@ -6,7 +6,7 @@ from models import main_models
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--n_epoches_1', type=int, default=10)
+parser.add_argument('--n_epoches_1', type=int, default=3)
 parser.add_argument('--n_epoches_2', type=int, default=100)
 parser.add_argument('--n_epoches_3', type=int, default=100)
 parser.add_argument('--n_target_samples', type=int, default=7)
@@ -16,11 +16,11 @@ opt = vars(parser.parse_args())
 
 use_cuda = True if torch.cuda.is_available() else False
 device = torch.device('cuda:0') if use_cuda else torch.device('cpu')
-torch.manual_seed(1)
+# torch.manual_seed(1)
 if use_cuda:
     torch.cuda.manual_seed(1)
 
-learning_rate = [0.001, 0.001, 0.001]
+learning_rate = [0.001, 0.001, 0.002]
 
 # --------------pretrain g and h for step 1---------------------------------
 train_dataloader = dataloader.mnist_dataloader_large(batch_size=opt['batch_size'], train=True)
@@ -212,7 +212,7 @@ for epoch in range(opt['n_epoches_3']):
             loss_X2 = loss_fn(y_pred_X2, ground_truths_y2)
             loss_dcd = loss_fn(y_pred_dcd, dcd_labels)
 
-            loss_sum = loss_X1 + loss_X2 + 0.25 * loss_dcd
+            loss_sum = loss_X1 + loss_X2 + 0.2 * loss_dcd
 
             loss_sum.backward()
             optimizer_g_h_a.step()
