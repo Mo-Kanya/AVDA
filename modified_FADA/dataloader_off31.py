@@ -10,34 +10,31 @@ def get_dataloader(data_dir, batch_size, train=True):
     if train:
         imgs = datasets.ImageFolder(data_dir,
                                     transform=transforms.Compose([
-                                        transforms.Resize(256),
-                                        transforms.RandomCrop(224),
+                                        transforms.Resize(224),
                                         transforms.ToTensor(),
-                                        # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                                        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                        # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
                                     ]))
         data_loader = torch.utils.data.DataLoader(imgs, batch_size=batch_size, num_workers=4, shuffle=True, drop_last=True)
     else:
         imgs = datasets.ImageFolder(data_dir,
                                     transform=transforms.Compose([
-                                        transforms.Resize(256),
-                                        transforms.CenterCrop(224),
+                                        transforms.Resize(224),
                                         transforms.ToTensor(),
-                                        # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                                        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                        # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
                                     ]))
-        data_loader = torch.utils.data.DataLoader(imgs, batch_size=batch_size, num_workers=4, shuffle=False)
+        data_loader = torch.utils.data.DataLoader(imgs, batch_size=batch_size, num_workers=4, shuffle=True)
     return data_loader
 
 
 def get_support(tar_dir, n):
     dataset=datasets.ImageFolder(tar_dir,
                                 transform=transforms.Compose([
-                                    transforms.Resize(256),
-                                    transforms.CenterCrop(224),
+                                    transforms.Resize(224),
                                     transforms.ToTensor(),
-                                    # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                    # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
                                 ]))
     
     X,Y=[],[]
@@ -63,13 +60,11 @@ def sample_data():
     src_dir = "./domain_adaptation_images/webcam/images/"
     train_set = datasets.ImageFolder(src_dir,
                                 transform=transforms.Compose([
-                                    transforms.Resize(256),
-                                    transforms.CenterCrop(224),
+                                    transforms.Resize(224),
                                     transforms.ToTensor(),
-                                    # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                    # transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
                                 ]))
-    sample_per_class = 3
     n=len(train_set)
     X=torch.Tensor(n,3,224,224)
     Y=torch.LongTensor(n)

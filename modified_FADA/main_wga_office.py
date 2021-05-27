@@ -7,12 +7,12 @@ from torch.utils.data import DataLoader
 import numpy as np
 max_acu = 0.0
 parser=argparse.ArgumentParser()
-parser.add_argument('--n_epoches_1',type=int,default=10)
+parser.add_argument('--n_epoches_1',type=int,default=100)
 parser.add_argument('--n_epoches_2',type=int,default=100)
-parser.add_argument('--n_epoches_3',type=int,default=150)
+parser.add_argument('--n_epoches_3',type=int,default=100)
 parser.add_argument('--batch_size1',type=int,default=20)
 parser.add_argument('--batch_size2',type=int,default=40)
-parser.add_argument('--lr',type=float,default=0.0008)
+parser.add_argument('--lr',type=float,default=0.002)
 parser.add_argument('--batch_size',type=int,default=16)
 parser.add_argument('--n_target_samples',type=int,default=7)
 parser.add_argument('--seed',type=int,default=1)
@@ -20,18 +20,15 @@ opt=vars(parser.parse_args())
 
 use_cuda=True if torch.cuda.is_available() else False
 device=torch.device('cuda:0') if use_cuda else torch.device('cpu')
-torch.manual_seed(opt['seed'])
-if use_cuda:
-    torch.cuda.manual_seed(opt['seed'])
-domain_adaptation_task = 'MNIST_to_USPS' #'USPS_to_MNIST' 
-# 'MNIST_to_USPS'
-repetition = 0
-sample_per_class = 7
+# torch.manual_seed(opt['seed'])
+# if use_cuda:
+#     torch.cuda.manual_seed(opt['seed'])
 batch_size = 16
-tar_dir = "./domain_adaptation_images/dslr/images/"
-src_dir = "./domain_adaptation_images/webcam/images/"
-test_dataloader = dataloader.get_dataloader(src_dir, batch_size = batch_size, train=False)  # a fake one
-train_set = dataloader.get_dataloader(src_dir, batch_size = batch_size, train=False)
+tar_dir = "./domain_adaptation_images/webcam/images/"
+# src_dir = "./domain_adaptation_images/webcam/images/"
+src_dir = "./domain_adaptation_images/dslr/images/"
+test_dataloader = dataloader.get_dataloader(tar_dir, batch_size = batch_size, train=False)
+train_set = dataloader.get_dataloader(src_dir, batch_size = batch_size, train=True)
 
 
 classifier=main_models.Classifier()
@@ -48,8 +45,53 @@ loss_fn=torch.nn.CrossEntropyLoss()
 X_s,Y_s=dataloader.sample_data()
 X_t,Y_t=dataloader.get_support(tar_dir, 3)
 
+
+
+# optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()),lr=opt['lr'])
+# optimizer_all=torch.optim.Adadelta(list(encoder.parameters())+list(classifier.parameters()))
+#
+# for epoch in range(opt['n_epoches_1']):
+#
+#     for data,labels in train_set:
+#         data=data.to(device)
+#         labels=labels.to(device)
+#         optimizer_all.zero_grad()
+#
+#         encode = encoder(data)
+#         # attention_score = attention(encode)
+#         # y_pred=classifier(encode * (1-attention_score))
+#         y_pred=classifier(encode)
+#         loss=loss_fn(y_pred,labels)
+#         loss.backward()
+#
+#         optimizer_all.step()
+#
+#     print(loss)
+#
+#     acc=0
+#     deno = 0
+#     with torch.no_grad():
+#         for data,labels in test_dataloader:
+#             data=data.to(device)
+#             labels=labels.to(device)
+#             encode = encoder(data)
+#             # attention_score = attention(encode)
+#             # y_test_pred=classifier(encode * (1-attention_score))
+#             y_test_pred=classifier(encode)
+#             # acc+=(torch.max(y_test_pred,1)[1]==labels).float().mean().item()
+#             y_test_pred = torch.argmax(y_test_pred, dim=1)
+#             acc += torch.sum(y_test_pred == labels).item()
+#             deno += len(labels)
+#
+#         # accuracy=round(acc / float(len(test_dataloader)), 3)
+#         accuracy=acc / deno
+#
+#         print("step1----Epoch %d/%d  accuracy: %.3f "%(epoch+1,opt['n_epoches_1'],accuracy))
+#
+# exit()
+
 #-------------------training for step 3-------------------
-optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()),lr=opt['lr'])
+optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()), lr=0.0005)
 # test_dataloader=DataLoader(test_set,batch_size=opt['batch_size'],shuffle=True,drop_last=True)
 
 
@@ -75,8 +117,10 @@ for epoch in range(opt['n_epoches_3']):
     ground_truths_y1 = []
     ground_truths_y2 = []
     dcd_labels=[]
-    for index in range(n_iters):
 
+    discriminator.train()
+
+    for index in range(n_iters):
 
         ground_truth=index_list[index]//len(G2)
         x1, x2 = groups_2[ground_truth][index_list[index] - len(G2) * ground_truth]
@@ -134,24 +178,44 @@ for epoch in range(opt['n_epoches_3']):
             ground_truths_y1 = []
             ground_truths_y2 = []
             dcd_labels = []
+
+    print(loss_sum)
     acc = 0
-    for data, labels in test_dataloader:
-        data = data.to(device)
-        labels = labels.to(device)
+    deno = 0
+    discriminator.eval()
+    with torch.no_grad():
+        for data, labels in test_dataloader:
+            data = data.to(device)
+            labels = labels.to(device)
 
-        # y_test_pred = classifier(encoder(data))
-        encoder_test = encoder(data)
-        attention_score = attention(encoder_test)
-        attention_clf = encoder_test * (1 - attention_score)
-        y_test_pred = classifier(attention_clf)
+            # y_test_pred = classifier(encoder(data))
+            encoder_test = encoder(data)
+            attention_score = attention(encoder_test)
+            attention_clf = encoder_test * (1 - attention_score)
+            y_test_pred = classifier(attention_clf)
+            y_test_pred = torch.argmax(y_test_pred, dim=1)
+            acc += torch.sum(y_test_pred == labels).item()
+            deno += len(labels)
+            # acc += (torch.max(y_test_pred, 1)[1] == labels).float().mean().item()
 
-        acc += (torch.max(y_test_pred, 1)[1] == labels).float().mean().item()
+        # accuracy = round(acc / float(len(test_dataloader)), 3)
+        accuracy = acc / deno
 
-    accuracy = round(acc / float(len(test_dataloader)), 3)
-
-    print("step3----Epoch %d/%d  accuracy: %.3f " %
-          (epoch + 1, opt['n_epoches_3'], accuracy))
-    if (accuracy>max_acu):
-        max_acu = accuracy
+        print("step3----Epoch %d/%d  accuracy: %.3f " %
+              (epoch + 1, opt['n_epoches_3'], accuracy))
+        if (accuracy>max_acu):
+            max_acu = accuracy
 print("Max Accuracy: %f" % max_acu)
 print(list(attention.parameters()))
+
+
+# save
+# name = 'wga_office_a2w_1'
+# name = 'wga_office_w2a_1'
+name = 'wga_office_d2w_1'
+torch.save(encoder.state_dict(), './result/{}/encoder.pth'.format(name))
+torch.save(attention.state_dict(), './result/{}/attention.pth'.format(name))
+torch.save(classifier.state_dict(), './result/{}/classifier.pth'.format(name))
+torch.save(discriminator.state_dict(), './result/{}/discriminator.pth'.format(name))
+
+

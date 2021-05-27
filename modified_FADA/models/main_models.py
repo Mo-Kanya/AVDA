@@ -9,22 +9,22 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.shape[0], -1)
 
-class DCD(BasicModule):
-    def __init__(self,h_features=1024,input_features=2048*2):
+class DCD(nn.Module):
+    def __init__(self,h_features=2048,input_features=2048*2):
         super(DCD,self).__init__()
 
         self.fc1=nn.Linear(input_features,h_features)
-        self.fc2=nn.Linear(h_features,512)
-        self.fc3=nn.Linear(512,4)
+        self.fc2=nn.Linear(h_features,1024)
+        self.fc3=nn.Linear(1024,4)
 
     def forward(self,inputs):
         out=F.relu(self.fc1(inputs))
-        out=self.fc2(out)
+        out=F.relu(self.fc2(out))
         return F.softmax(self.fc3(out),dim=1)
 
 
 class Attention(BasicModule):
-    def __init__(self, h_features=1024, input_features=2048):
+    def __init__(self, h_features=4096, input_features=2048):
         super(Attention, self).__init__()
 
         self.fc1 = nn.Linear(input_features, h_features)
