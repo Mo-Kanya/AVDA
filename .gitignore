@@ -130,5 +130,18 @@ dmypy.json
 
 # ide
 .idea
+.vscode
 
 modified_FADA/temp
+
+# dataset
+modified_FADA/domain_adaptation_images
+modified_FADA/domain_adaptation_images_reduced_1
+modified_FADA/domain_adaptation_images_reduced_2
+modified_FADA/domain_adaptation_images.zip
+modified_FADA/domain_adaptation_images_reduced_1.zip
+modified_FADA/domain_adaptation_images_reduced_2.zip
+modified_FADA.zip
+modified_FADA/result
+modified_FADA/models/resnet18-5c106cde.pth
+modified_FADA/models/resnet50-19c8e357.pth
