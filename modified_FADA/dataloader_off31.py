@@ -5,6 +5,7 @@ import torch
 from torchvision import datasets
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+
 #return MNIST dataloader
 def get_dataloader(data_dir, batch_size, train=True):
     if train:
@@ -26,7 +27,6 @@ def get_dataloader(data_dir, batch_size, train=True):
                                     ]))
         data_loader = torch.utils.data.DataLoader(imgs, batch_size=batch_size, num_workers=4, shuffle=True)
     return data_loader
-
 
 def get_support(tar_dir, n):
     dataset=datasets.ImageFolder(tar_dir,
@@ -51,8 +51,6 @@ def get_support(tar_dir, n):
             classes[y]-=1
     assert (len(X)==n*31)
     return torch.stack(X,dim=0),torch.from_numpy(np.array(Y))
-
-
 
 def sample_data():
     repetition = 0
@@ -88,39 +86,31 @@ def create_groups(X_s,Y_s,X_t,Y_t,seed=1):
     torch.manual_seed(1 + seed)
     torch.cuda.manual_seed(1 + seed)
 
-
     n=X_t.shape[0] #10*shot
-
 
     #shuffle order
     classes = torch.unique(Y_t)
     classes=classes[torch.randperm(len(classes))]
 
-
     class_num=classes.shape[0]
     shot=n//class_num
 
-
-
     def s_idxs(c):
         idx=torch.nonzero(Y_s.eq(int(c)))
-
         return idx[torch.randperm(len(idx))][:shot*2].squeeze()
+
     def t_idxs(c):
         return torch.nonzero(Y_t.eq(int(c)))[:shot].squeeze()
 
     source_idxs = list(map(s_idxs, classes))
     target_idxs = list(map(t_idxs, classes))
 
-
     source_matrix=torch.stack(source_idxs)
 
     target_matrix=torch.stack(target_idxs)
 
-
     G1, G2, G3, G4 = [], [] , [] , []
     Y1, Y2 , Y3 , Y4 = [], [] ,[] ,[]
-
 
     for i in range(10):
         for j in range(shot):
@@ -133,21 +123,14 @@ def create_groups(X_s,Y_s,X_t,Y_t,seed=1):
             G4.append((X_s[source_matrix[i%10][j]],X_t[target_matrix[(i+1)%10][j]]))
             Y4.append((Y_s[source_matrix[i % 10][j]], Y_t[target_matrix[(i + 1) % 10][j]]))
 
-
-
     groups=[G1,G2,G3,G4]
     groups_y=[Y1,Y2,Y3,Y4]
-
 
     return groups,groups_y
 
 
-
-
 def sample_groups(X_s,Y_s,X_t,Y_t,seed=1):
-
-
-    print("Sampling groups")
+    # print("Sampling groups")
     return create_groups(X_s,Y_s,X_t,Y_t,seed=seed)
 
 

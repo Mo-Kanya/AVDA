@@ -2,39 +2,56 @@ import argparse
 import torch
 import dataloader_off31 as dataloader
 from models import main_models
+# from config import config
 from models import BasicModule
+from utils.utils import *
 from torch.utils.data import DataLoader
 import numpy as np
+import yaml
+
+with open('./config/config.yaml') as f:
+    config = yaml.load(f, Loader=yaml.Loader)
+
 max_acu = 0.0
 parser=argparse.ArgumentParser()
-parser.add_argument('--n_epoches_1',type=int,default=100)
-parser.add_argument('--n_epoches_2',type=int,default=100)
-parser.add_argument('--n_epoches_3',type=int,default=100)
-parser.add_argument('--batch_size1',type=int,default=20)
-parser.add_argument('--batch_size2',type=int,default=40)
-parser.add_argument('--lr',type=float,default=0.002)
-parser.add_argument('--batch_size',type=int,default=16)
-parser.add_argument('--n_target_samples',type=int,default=7)
-parser.add_argument('--seed',type=int,default=1)
+parser.add_argument('--n_epoches_1',type=int,default=config['n_epoches_1'])
+parser.add_argument('--n_epoches_2',type=int,default=config['n_epoches_2'])
+parser.add_argument('--n_epoches_3',type=int,default=config['n_epoches_3'])
+parser.add_argument('--batch_size1',type=int,default=config['batch_size1'])
+parser.add_argument('--batch_size2',type=int,default=config['batch_size2'])
+parser.add_argument('--lr',type=float,default=config['lr'])
+parser.add_argument('--batch_size',type=int,default=config['batch_size'])
+parser.add_argument('--n_target_samples',type=int,default=config['n_target_samples'])
+parser.add_argument('--seed',type=int,default=config['seed'])
 opt=vars(parser.parse_args())
 
 use_cuda=True if torch.cuda.is_available() else False
-device=torch.device('cuda:0') if use_cuda else torch.device('cpu')
-# torch.manual_seed(opt['seed'])
-# if use_cuda:
-#     torch.cuda.manual_seed(opt['seed'])
-batch_size = 16
-tar_dir = "./domain_adaptation_images/webcam/images/"
-# src_dir = "./domain_adaptation_images/webcam/images/"
-src_dir = "./domain_adaptation_images/dslr/images/"
-test_dataloader = dataloader.get_dataloader(tar_dir, batch_size = batch_size, train=False)
-train_set = dataloader.get_dataloader(src_dir, batch_size = batch_size, train=True)
+device=torch.device(f"cuda:{config['device']}") if use_cuda else torch.device('cpu')
+torch.manual_seed(opt['seed'])
+if use_cuda:
+    torch.cuda.manual_seed(opt['seed'])
+
+experiment_number = config['experiment_number']
+batch_size = config['batch_size']
+task = config['task']
+src_dir, tar_dir = get_domains(task)
+# domains = ["./domain_adaptation_images/webcam/images/",
+#            "./domain_adaptation_images/dslr/images/",
+#            "./domain_adaptation_images/amazon/images/"]
+# src_dir = domains[1]
+# tar_dir = domains[2]
+test_dataloader = dataloader.get_dataloader(tar_dir, batch_size=batch_size, train=False)
+train_set = dataloader.get_dataloader(src_dir, batch_size=batch_size, train=True)
 
 
 classifier=main_models.Classifier()
 encoder=main_models.Encoder()
-discriminator=main_models.DCD(input_features=2048*2)
-attention = main_models.Attention(input_features=2048)
+discriminator=main_models.DCD(input_features=config['DCD']['input_features'],
+                              h1_features=config['DCD']['h1_features'],
+                              h2_features=config['DCD']['h2_features'])
+attention = main_models.Attention(input_features=config['Attention']['input_features'],
+                                  h_features=config['Attention']['h_features'],
+                                  normalize=config['Attention']['normalize'])
 # TODO: attention需要有初始化参数，感觉在0.5左右会好一点
 
 classifier.to(device)
@@ -91,9 +108,10 @@ X_t,Y_t=dataloader.get_support(tar_dir, 3)
 # exit()
 
 #-------------------training for step 3-------------------
-optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()), lr=0.0005)
+optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()), lr=config['lr'])
 # test_dataloader=DataLoader(test_set,batch_size=opt['batch_size'],shuffle=True,drop_last=True)
 
+as_record = []
 
 for epoch in range(opt['n_epoches_3']):
     #---training g and h , DCD is frozen
@@ -168,7 +186,7 @@ for epoch in range(opt['n_epoches_3']):
             loss_X2=loss_fn(y_pred_X2,ground_truths_y2)
             loss_dcd=loss_fn(y_pred_dcd,dcd_labels)
 
-            loss_sum = loss_X1 + loss_X2 + 0.2 * loss_dcd
+            loss_sum = loss_X1 + loss_X2 + config['lambda'] * loss_dcd
 
             loss_sum.backward()
             optimizer_all.step()
@@ -179,7 +197,7 @@ for epoch in range(opt['n_epoches_3']):
             ground_truths_y2 = []
             dcd_labels = []
 
-    print(loss_sum)
+    print('loss:', loss_sum.cpu().item())
     acc = 0
     deno = 0
     discriminator.eval()
@@ -191,6 +209,9 @@ for epoch in range(opt['n_epoches_3']):
             # y_test_pred = classifier(encoder(data))
             encoder_test = encoder(data)
             attention_score = attention(encoder_test)
+
+            as_record.append(attention_score)
+
             attention_clf = encoder_test * (1 - attention_score)
             y_test_pred = classifier(attention_clf)
             y_test_pred = torch.argmax(y_test_pred, dim=1)
@@ -208,14 +229,21 @@ for epoch in range(opt['n_epoches_3']):
 print("Max Accuracy: %f" % max_acu)
 print(list(attention.parameters()))
 
+as_record = torch.cat(as_record).cpu().numpy()
+
+with open('as_record.npy', 'wb') as f:
+    np.save(f, as_record, allow_pickle=True)
 
 # save
-# name = 'wga_office_a2w_1'
-# name = 'wga_office_w2a_1'
-name = 'wga_office_d2w_1'
-torch.save(encoder.state_dict(), './result/{}/encoder.pth'.format(name))
-torch.save(attention.state_dict(), './result/{}/attention.pth'.format(name))
-torch.save(classifier.state_dict(), './result/{}/classifier.pth'.format(name))
-torch.save(discriminator.state_dict(), './result/{}/discriminator.pth'.format(name))
+f_name = f'wga_office_{task}'
+if config['save_model']:
+    mkdir(f'./result/{f_name}/result_{experiment_number}')
+    torch.save(encoder.state_dict(), f'./result/{f_name}/result_{experiment_number}/encoder.pth')
+    torch.save(attention.state_dict(), f'./result/{f_name}/result_{experiment_number}/attention.pth')
+    torch.save(classifier.state_dict(), f'./result/{f_name}/result_{experiment_number}/classifier.pth')
+    torch.save(discriminator.state_dict(), f'./result/{f_name}/result_{experiment_number}/discriminator.pth')
+
+# save config
+exe_cmd(f'cp ./config/config.yaml ./result/{f_name}/result_{experiment_number}/config.yaml')
 
 

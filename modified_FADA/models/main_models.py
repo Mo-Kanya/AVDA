@@ -12,12 +12,12 @@ class Flatten(nn.Module):
 
 
 class DCD(nn.Module):
-    def __init__(self, h_features=2048, input_features=2048 * 2):
+    def __init__(self, h1_features=2048, h2_features=1024, input_features=2048 * 2):
         super(DCD, self).__init__()
 
-        self.fc1 = nn.Linear(input_features, h_features)
-        self.fc2 = nn.Linear(h_features, 1024)
-        self.fc3 = nn.Linear(1024, 4)
+        self.fc1 = nn.Linear(input_features, h1_features)
+        self.fc2 = nn.Linear(h1_features, h2_features)
+        self.fc3 = nn.Linear(h2_features, 4)
 
     def forward(self, inputs):
         out = F.relu(self.fc1(inputs))
@@ -26,17 +26,27 @@ class DCD(nn.Module):
 
 
 class Attention(BasicModule):
-    def __init__(self, h_features=4096, input_features=2048):
+    def __init__(self, h_features=4096, input_features=2048, normalize='sigmoid'):
         super(Attention, self).__init__()
 
         self.fc1 = nn.Linear(input_features, h_features)
         self.fc2 = nn.Linear(h_features, h_features)
         self.fc3 = nn.Linear(h_features, input_features)
 
+        if normalize == 'sigmoid':
+            self.normalize = torch.sigmoid
+        elif normalize == 'tanh':
+            self.normalize = torch.tanh
+        elif normalize == 'L1':
+            self.normalize = F.normalize
+        else:
+            self.normalize = torch.sigmoid
+
     def forward(self, inputs):
         out = F.relu(self.fc1(inputs))
         out = F.relu(self.fc2(out))
-        out = F.sigmoid(self.fc3(out))
+        out = self.fc3(out)
+        out = self.normalize(out)
         return out
         # return F.InstanceNorm1d(out)
 

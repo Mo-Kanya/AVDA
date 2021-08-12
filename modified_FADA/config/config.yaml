@@ -1,0 +1,30 @@
+experiment_number: 4
+task: 'd2w'
+
+n_epoches_1: 100
+n_epoches_2: 100
+n_epoches_3: 200
+lr: 0.0005
+batch_size1: 20
+batch_size2: 40
+batch_size: 16
+n_target_samples: 7
+seed: 1
+lambda: 0.2
+
+DCD:
+  input_features: 4096
+  h1_features: 2048
+  h2_features: 1024
+
+Attention:
+  input_features: 2048
+  h_features: 4096
+  normalize: "sigmoid"
+
+dataloader:
+  normalize: [[0.485, 0.456, 0.406], [0.229, 0.224, 0.225]]
+
+device: 2
+
+save_model: false

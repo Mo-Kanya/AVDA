@@ -58,3 +58,13 @@
 #python main_wga_U.py --lr 0.0019 --batch_size1 32 --batch_size2 32 --seed 37 >> log1_23.txt
 #python main_wga_U.py --lr 0.0019 --batch_size1 32 --batch_size2 32 --seed 41 >> log1_24.txt
 #python main_wga_U.py --lr 0.0019 --batch_size1 20 --batch_size2 40 --seed 17 >> log1_25.txt
+
+
+#nohup python -u main_wga_office.py > log_d2w_2.out 2>&1 &
+#nohup python -u main_wga_office.py > log_d2a_1.out 2>&1 &    # not good
+#nohup python -u main_wga_office.py > log_a2w_1.out 2>&1 &
+#nohup python -u main_wga_office.py > log_a2d_1.out 2>&1 &
+#nohup python -u main_wga_office.py > log_w2a_1.out 2>&1 &    # not good
+#nohup python -u main_wga_office.py > log_w2d_1.out 2>&1 &
+
+nohup python -u main_wga_office.py > log_d2a_2.out 2>&1 &

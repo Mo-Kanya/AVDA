@@ -5,9 +5,11 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
+base_dir = "/mnt/xutan/lrq/AVDA/modified_FADA"
+
 # %% import data
 filename = "webcam.pkl"
-with open("./result/interpretation/%s" % filename, "rb") as f:
+with open(f"{base_dir}/result/interpretation/{filename}", "rb") as f:
     data = np.array(pickle.load(f))
 
 # %% random data
@@ -63,3 +65,13 @@ plt.hist(n_smallest_var_as["mean"].abs())
 plt.title("hist of abstract means of attention score with min variance")
 plt.show()
 
+
+# %%
+# 运行时attention
+
+with open(f"{base_dir}/as_record.npy", "rb") as f:
+    data = np.load(f, allow_pickle=True)
+
+# %%
+plt.pcolor(data[np.arange(0, int(159000 * 10 / 200), 100)])
+plt.show()
