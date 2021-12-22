@@ -51,7 +51,8 @@ discriminator=main_models.DCD(input_features=config['DCD']['input_features'],
                               h2_features=config['DCD']['h2_features'])
 attention = main_models.Attention(input_features=config['Attention']['input_features'],
                                   h_features=config['Attention']['h_features'],
-                                  normalize=config['Attention']['normalize'])
+                                  normalize=config['Attention']['normalize'],
+                                  firstNorm=config['Attention']['first_norm'])
 
 classifier.load_state_dict(torch.load(f"./result/wga_office_{task}/result_{experiment_number}/classifier.pth")) #,map_location=device)
 encoder.load_state_dict(torch.load(f"./result/wga_office_{task}/result_{experiment_number}/encoder.pth")) #,map_location=device)

@@ -48,8 +48,12 @@ plt.plot(df["mean"].abs().sort_values())
 plt.title("distribution of abstract means of attention score")
 plt.show()
 
-plt.hist(df["mean"].abs())
-plt.title("hist of abstract means of attention score")
+# %%
+bins = np.linspace(0.0, 1.0, 21)
+hst = plt.hist(df["mean"].abs(), bins=bins)
+for i in range(len(bins) - 1 if type(bins) is np.ndarray or type(bins) is list else bins):
+    plt.text(hst[1][i], hst[0][i], str(int(hst[0][i])))
+plt.title("Means of Attention Scores")
 plt.show()
 
 
@@ -69,9 +73,14 @@ plt.show()
 # %%
 # 运行时attention
 
-with open(f"{base_dir}/as_record.npy", "rb") as f:
+with open(f"{base_dir}/as_record_d2w_fnorm.npy", "rb") as f:
     data = np.load(f, allow_pickle=True)
 
 # %%
-plt.pcolor(data[np.arange(0, int(159000 * 10 / 200), 100)])
+plt.pcolor(data)
+plt.title('Attention Vectors throughout Training')
+plt.colorbar(label='Attention Score')
 plt.show()
+
+# %%
+data = data[2000:]

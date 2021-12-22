@@ -8,6 +8,7 @@ from utils.utils import *
 from torch.utils.data import DataLoader
 import numpy as np
 import yaml
+from torchsummary import summary
 
 with open('./config/config.yaml') as f:
     config = yaml.load(f, Loader=yaml.Loader)
@@ -51,7 +52,8 @@ discriminator=main_models.DCD(input_features=config['DCD']['input_features'],
                               h2_features=config['DCD']['h2_features'])
 attention = main_models.Attention(input_features=config['Attention']['input_features'],
                                   h_features=config['Attention']['h_features'],
-                                  normalize=config['Attention']['normalize'])
+                                  normalize=config['Attention']['normalize'],
+                                  firstNorm=config['Attention']['first_norm'])
 # TODO: attention需要有初始化参数，感觉在0.5左右会好一点
 
 classifier.to(device)
@@ -108,8 +110,13 @@ X_t,Y_t=dataloader.get_support(tar_dir, 3)
 # exit()
 
 #-------------------training for step 3-------------------
-optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()), lr=config['lr'])
-# test_dataloader=DataLoader(test_set,batch_size=opt['batch_size'],shuffle=True,drop_last=True)
+if config['freeze_enc']:
+    print('freezing the encoder...')
+    encoder.fine_tune(fine_tune=False)
+    optimizer_all=torch.optim.Adam(list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()), lr=config['lr'])
+else:
+    optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()), lr=config['lr'])
+    # test_dataloader=DataLoader(test_set,batch_size=opt['batch_size'],shuffle=True,drop_last=True)
 
 as_record = []
 
@@ -170,8 +177,8 @@ for epoch in range(opt['n_epoches_3']):
             encoder_X1=encoder(X1)
             encoder_X2=encoder(X2)
 
-            attention_score1 = attention(encoder_X1)
-            attention_score2 = attention(encoder_X2)
+            attention_score1, _ = attention(encoder_X1)
+            attention_score2, _ = attention(encoder_X2)
 
             attention_X1 = encoder_X1 * attention_score1
             attention_X2 = encoder_X2 * attention_score2
@@ -201,6 +208,7 @@ for epoch in range(opt['n_epoches_3']):
     acc = 0
     deno = 0
     discriminator.eval()
+    as_ = 0
     with torch.no_grad():
         for data, labels in test_dataloader:
             data = data.to(device)
@@ -208,9 +216,17 @@ for epoch in range(opt['n_epoches_3']):
 
             # y_test_pred = classifier(encoder(data))
             encoder_test = encoder(data)
-            attention_score = attention(encoder_test)
+            attention_score, as_before_norm = attention(encoder_test)
 
-            as_record.append(attention_score)
+            # NOTE
+            # as_record.append(attention_score)
+            # as_ += attention_score
+            # print(f'attention_score\n{attention_score.shape}\n', attention_score)
+            # print(f'as_before_norm\n{as_before_norm.shape}\n', as_before_norm)
+            # if as_before_norm.shape == (16, 2048):
+            #     as_ += as_before_norm
+            if attention_score.shape == (16, 2048):
+                as_ += attention_score
 
             attention_clf = encoder_test * (1 - attention_score)
             y_test_pred = classifier(attention_clf)
@@ -222,6 +238,9 @@ for epoch in range(opt['n_epoches_3']):
         # accuracy = round(acc / float(len(test_dataloader)), 3)
         accuracy = acc / deno
 
+        as_ /= len(test_dataloader)
+        as_record.append(as_)
+
         print("step3----Epoch %d/%d  accuracy: %.3f " %
               (epoch + 1, opt['n_epoches_3'], accuracy))
         if (accuracy>max_acu):
@@ -231,13 +250,18 @@ print(list(attention.parameters()))
 
 as_record = torch.cat(as_record).cpu().numpy()
 
-with open('as_record.npy', 'wb') as f:
+with open('as_record_d2w_fnorm.npy', 'wb') as f:
     np.save(f, as_record, allow_pickle=True)
+
+# print model
+if config['print_model']:
+    print('Model Summary of Encoder:')
+    summary(encoder, (3, 224, 224), device=device)
 
 # save
 f_name = f'wga_office_{task}'
+mkdir(f'./result/{f_name}/result_{experiment_number}')
 if config['save_model']:
-    mkdir(f'./result/{f_name}/result_{experiment_number}')
     torch.save(encoder.state_dict(), f'./result/{f_name}/result_{experiment_number}/encoder.pth')
     torch.save(attention.state_dict(), f'./result/{f_name}/result_{experiment_number}/attention.pth')
     torch.save(classifier.state_dict(), f'./result/{f_name}/result_{experiment_number}/classifier.pth')

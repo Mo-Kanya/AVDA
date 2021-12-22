@@ -1,5 +1,6 @@
 import argparse
 import torch
+# import dataloader
 import dataloader_street2mnist as dataloader
 from models import main_models
 import numpy as np
@@ -10,7 +11,7 @@ parser.add_argument('--n_epoches_2',type=int,default=100)
 parser.add_argument('--n_epoches_3',type=int,default=150)
 parser.add_argument('--batch_size1',type=int,default=20)
 parser.add_argument('--batch_size2',type=int,default=40)
-parser.add_argument('--lr',type=float,default=0.002)
+parser.add_argument('--lr',type=float,default=0.001)
 parser.add_argument('--batch_size',type=int,default=64)
 parser.add_argument('--n_target_samples',type=int,default=7)
 parser.add_argument('--seed',type=int,default=17)
@@ -24,9 +25,9 @@ if use_cuda:
 train_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=True)
 test_dataloader=dataloader.mnist_dataloader(batch_size=opt['batch_size'],train=False)
 
-classifier=main_models.Classifier()
-encoder=main_models.Encoder()
-discriminator=main_models.DCD(input_features=128, h_features=512)
+classifier=main_models.Classifier(input_features=64, classes=10)
+encoder=main_models.LeNet()
+discriminator=main_models.DCD(input_features=128, h1_features=512, h2_features=512)
 attention = main_models.Attention(input_features=64, h_features=512)
 # TODO: attention需要有初始化参数，感觉在0.5左右会好一点
 
@@ -43,6 +44,8 @@ X_t,Y_t=dataloader.create_target_samples(opt['n_target_samples'])
 optimizer_all=torch.optim.Adam(list(encoder.parameters())+list(classifier.parameters())+list(attention.parameters())+list(discriminator.parameters()),lr=opt['lr'])
 test_dataloader=dataloader.svhn_dataloader(train=False,batch_size=opt['batch_size'])
 
+accs = np.zeros(shape=opt['n_epoches_3'])
+losses = np.zeros(shape=opt['n_epoches_3'])
 
 for epoch in range(opt['n_epoches_3']):
     #---training g and h , DCD is frozen
@@ -99,8 +102,8 @@ for epoch in range(opt['n_epoches_3']):
             encoder_X1=encoder(X1)
             encoder_X2=encoder(X2)
 
-            attention_score1 = attention(encoder_X1)
-            attention_score2 = attention(encoder_X2)
+            attention_score1, _ = attention(encoder_X1)
+            attention_score2, _ = attention(encoder_X2)
 
             attention_X1 = encoder_X1 * attention_score1
             attention_X2 = encoder_X2 * attention_score2
@@ -125,23 +128,40 @@ for epoch in range(opt['n_epoches_3']):
             ground_truths_y1 = []
             ground_truths_y2 = []
             dcd_labels = []
+
+    losses[epoch] = loss_sum.cpu().item()
+
     acc = 0
+    deno = 0
     for data, labels in test_dataloader:
         data = data.to(device)
         labels = labels.to(device)
 
         # y_test_pred = classifier(encoder(data))
         encoder_test = encoder(data)
-        attention_score = attention(encoder_test)
+        attention_score, as_before_norm = attention(encoder_test)
         attention_clf = encoder_test * (1 - attention_score)
         y_test_pred = classifier(attention_clf)
 
         acc += (torch.max(y_test_pred, 1)[1] == labels).float().mean().item()
+        # y_test_pred = torch.argmax(y_test_pred, dim=1)
+        # acc += torch.sum(y_test_pred == labels).item()
+        # deno += len(labels)
 
     accuracy = round(acc / float(len(test_dataloader)), 3)
+    # accuracy = acc / deno / len(test_dataloader)
+
+    accs[epoch] = accuracy
 
     print("step3----Epoch %d/%d  accuracy: %.3f " %
           (epoch + 1, opt['n_epoches_3'], accuracy))
     if (accuracy>max_acu):
         max_acu = accuracy
+
 print("Max Accuracy: %f" % max_acu)
+
+# with open('accs_avda_s2m2.npy', 'wb') as f:
+#     np.save(f, accs, allow_pickle=True)
+
+with open('losses_avda_s2m2.npy', 'wb') as f:
+    np.save(f, losses, allow_pickle=True)

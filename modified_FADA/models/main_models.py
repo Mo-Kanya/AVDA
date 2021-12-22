@@ -26,7 +26,7 @@ class DCD(nn.Module):
 
 
 class Attention(BasicModule):
-    def __init__(self, h_features=4096, input_features=2048, normalize='sigmoid'):
+    def __init__(self, h_features=4096, input_features=2048, normalize='sigmoid', firstNorm='L2'):
         super(Attention, self).__init__()
 
         self.fc1 = nn.Linear(input_features, h_features)
@@ -42,25 +42,52 @@ class Attention(BasicModule):
         else:
             self.normalize = torch.sigmoid
 
+        self.firstNorm = firstNorm
+
     def forward(self, inputs):
-        out = F.relu(self.fc1(inputs))
+        out = inputs
+        if self.firstNorm == 'L2':
+            out = F.normalize(inputs, p=2)
+        out = F.relu(self.fc1(out))
         out = F.relu(self.fc2(out))
         out = self.fc3(out)
-        out = self.normalize(out)
-        return out
+        out1 = self.normalize(out)
+        return out1, out
         # return F.InstanceNorm1d(out)
 
 class Classifier(BasicModule):
-    def __init__(self, input_features=2048):
+    def __init__(self, input_features=2048, classes=31):
         super(Classifier, self).__init__()
         self.classifier = nn.Sequential(
-            nn.Dropout(0.5),
-            nn.Linear(2048, 31),
+            # nn.Dropout(0.5),  # TODO
+            nn.Linear(input_features, classes),
         )
 
     def forward(self, input):
         return self.classifier(input)
 
+class LeNet(BasicModule):
+    def __init__(self):
+        super(LeNet, self).__init__()
+
+        self.conv1 = nn.Conv2d(1, 6, 5)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(256, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 64)
+
+    def forward(self, input):
+        out = F.relu(self.conv1(input))
+        out = F.max_pool2d(out, 2)
+        out = F.relu(self.conv2(out))
+        out = F.max_pool2d(out, 2)
+        out = out.view(out.size(0), -1)
+
+        out = F.relu(self.fc1(out))
+        out = F.relu(self.fc2(out))
+        out = self.fc3(out)
+
+        return out
 
 class Encoder(nn.Module):
 

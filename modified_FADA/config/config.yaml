@@ -1,5 +1,5 @@
 experiment_number: 4
-task: 'd2w'
+task: 'd2a'
 
 n_epoches_1: 100
 n_epoches_2: 100
@@ -20,11 +20,15 @@ DCD:
 Attention:
   input_features: 2048
   h_features: 4096
+  first_norm: "L2"
   normalize: "sigmoid"
 
 dataloader:
   normalize: [[0.485, 0.456, 0.406], [0.229, 0.224, 0.225]]
 
-device: 2
+device: 0
 
+freeze_enc: false
+
+print_model: true
 save_model: false
